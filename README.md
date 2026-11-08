@@ -21,16 +21,14 @@ string names the exact Google commit the core was built from.
 
 ## 1. Read the kernel version string
 
-![Anatomy of the GKI kernel version string](images/1_gki_string_anatomy.png)
+![Device About phone — kernel 5.15.194](evidence/1_device_kernel_5.15.194.png)
 
-`5.15.194` upstream Linux version &middot; `android13` Google GKI branch &middot;
-`8` KMI generation &middot; `00019` Android sublevel &middot; `gf4321180a397` the
-exact git commit in Google's public tree &middot; `ab15212794` Google
-build-server ID.
+`5.15.194-android13-8-00019-gf4321180a397-ab15212794` decodes as: `5.15.194`
+upstream Linux version &middot; `android13` Google GKI branch &middot; `8` KMI
+generation &middot; `00019` Android sublevel &middot; `gf4321180a397` the exact
+git commit in Google's public tree &middot; `ab15212794` Google build-server ID.
 
 ## 2. One kernel, two public source homes (GKI)
-
-![GKI core plus vendor tree](images/3_gki_architecture.png)
 
 - **GKI core** (the `Image`) — Google's Android Common Kernel, branch
   `android13-5.15`, version **5.15.194**. Public.
@@ -43,23 +41,26 @@ source = GKI core (Google) + vendor tree (OEM).
 
 ## 3. Find the exact GKI core source
 
-![Kernel string to AOSP tag to Makefile](images/2_source_match.png)
+The `g…` field in the kernel string is a git commit. In Google's Android Common
+Kernel it resolves to tag **`android13-5.15-2025-12_r9`**:
 
-The `g…` field in the kernel string is a git commit, and it maps straight to a
-public Google tag:
+![AOSP tag android13-5.15-2025-12_r9 — commit f4321180a397](evidence/4_aosp_tag_commit_f4321180a397.png)
 
-- Device commit: `f4321180a397`
-- AOSP tag: **`android13-5.15-2025-12_r9`** → commit `f4321180a3973d19…`, whose
-  `Makefile` reads `VERSION = 5`, `PATCHLEVEL = 15`, `SUBLEVEL = 194` =
-  **Linux 5.15.194**.
+The `object` / `commit` is `f4321180a3973d19…` — the exact hash from the device
+string — and the build artifact `15212794` matches the device's `ab15212794`.
+That tag's `Makefile` confirms the version:
 
+![AOSP Makefile at the tag — SUBLEVEL = 194](evidence/5_aosp_makefile_sublevel194.png)
+
+`VERSION = 5`, `PATCHLEVEL = 15`, `SUBLEVEL = 194` = **Linux 5.15.194**.
 Source: `android.googlesource.com/kernel/common` (tag `android13-5.15-2025-12_r9`).
-Verify: `/+/refs/tags/android13-5.15-2025-12_r9/Makefile`.
 
 So the shipped GKI core's source is public, and the device points to the exact
 commit.
 
 ## 4. The vendor tree
+
+![MiCode air-t-oss Makefile — kernel 5.15.94](evidence/2_micode_published_source_5.15.94.png)
 
 - Repo: `github.com/MiCode/Xiaomi_Kernel_OpenSource`, branch `air-t-oss`
   (commit `13290e766`), `Makefile` → 5.15.94.
@@ -106,8 +107,8 @@ not a missing-source gap.
 
 ## Evidence
 
-See [`evidence/`](evidence/) — the on-device kernel string, the MiCode vendor
-`Makefile`, and the on-device open-source page, in clean and marked pairs.
+See [`evidence/`](evidence/) — real, unedited screenshots: the on-device kernel
+string, the live Google AOSP tag + `Makefile`, and the MiCode vendor `Makefile`.
 
 ## Note
 
