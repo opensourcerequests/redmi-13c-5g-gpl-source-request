@@ -1,8 +1,13 @@
-# Redmi 13C 5G (air) — GPL Corresponding Source Request & Compliance Check
+# Redmi 13C 5G (air) — finding the GPL corresponding source (a GKI worked example)
 
-A good-faith open-source compliance check on a **Xiaomi Redmi 13C 5G**, and a
-**GPLv2 Section 3(b)** request for the Corresponding Source that matches the
-kernel actually shipped on the device.
+A good-faith, educational walkthrough of how to locate the complete GPL
+corresponding source for the Linux kernel on a **Xiaomi Redmi 13C 5G** — a
+**GKI (Generic Kernel Image)** Android device.
+
+**Takeaway:** the source is available and precisely identifiable. On a GKI device
+the kernel has two source homes — the GKI **core** (published by Google) and the
+**vendor tree** (published by the OEM) — and the device's own kernel version
+string names the exact Google commit the core was built from.
 
 ## Device
 
@@ -11,64 +16,101 @@ kernel actually shipped on the device.
 | Model | 23124RN87I (Redmi 13C 5G) |
 | Codename | `air` (MediaTek Dimensity 6100+) |
 | OS build | OS2.0.208.0.VGQINXM (Android 15 / HyperOS 2.0) |
-| **Kernel (shipped)** | **5.15.194** |
+| Kernel (shipped) | `5.15.194-android13-8-00019-gf4321180a397-ab15212794` |
 | Security patch | 2026-08-01 |
 
-## The finding — Corresponding-Source currency gap
+## 1. Read the kernel version string
 
-- The device ships kernel **5.15.194**.
-- The only kernel source Xiaomi publishes for this device is branch
-  **`air-t-oss`** on `github.com/MiCode/Xiaomi_Kernel_OpenSource`, which is
-  kernel **5.15.94** (verified: it is the *only* `air` branch, and its
-  `Makefile` shows `VERSION = 5`, `PATCHLEVEL = 15`, `SUBLEVEL = 94`).
-- Therefore the **published source does not correspond to the shipped binary.**
-  GPLv2 §3 requires the *corresponding* source — same version and modifications
-  as the conveyed executable.
+![Anatomy of the GKI kernel version string](images/1_gki_string_anatomy.png)
 
-## What was verified
+`5.15.194` upstream Linux version &middot; `android13` Google GKI branch &middot;
+`8` KMI generation &middot; `00019` Android sublevel &middot; `gf4321180a397` the
+exact git commit in Google's public tree &middot; `ab15212794` Google
+build-server ID.
 
-- **Source availability** — kernel source is posted on MiCode (`air-t-oss`) with
-  the matching MediaTek GPL modules, and the device carries a GPLv2 §3(b) written
-  offer (`oss-request@xiaomi.com`, valid 3 years, to any third party).
-- **Buildability** — the published `air-t-oss` source **compiles into a bootable
-  ARM64 kernel image**. It was built with LTO and BTF disabled and the generic
-  `gki_defconfig` to fit the build host, so it is **not byte-identical** to the
-  shipped kernel (that needs Google's pinned clang + ThinLTO + the device vendor
-  config). But the published source is genuine, complete, and builds.
-- **Build scripts (§3)** — present (`build.config.mtk.aarch64`, Kbuild/Kconfig,
-  defconfigs).
-- **Copyright preservation in source (§1)** — the kernel source retains upstream
-  copyright headers (e.g. `kernel/sched/core.c` → Linus Torvalds) + SPDX tags.
-- **On-device open-source page** — surfaces license *texts* only; it offers no
-  kernel-source download.
-- **Full license / obligation audit** — see [`audit/`](audit/): 63 copyleft
-  components mapped; the AGPL and `lzma` classifier flags resolved as false
-  positives; attribution notes included.
+## 2. One kernel, two public source homes (GKI)
 
-## The request
+![GKI core plus vendor tree](images/3_gki_architecture.png)
 
-A GPLv2 §3(b) request was sent to **`oss-request@xiaomi.com`** asking for the
-complete Corresponding Source matching the shipped **5.15.194** build — kernel +
-build/install scripts + the device vendor config fragments + the MTK GPL kernel
-modules. Full text: [`source-request-email.md`](source-request-email.md).
+- **GKI core** (the `Image`) — Google's Android Common Kernel, branch
+  `android13-5.15`, version **5.15.194**. Public.
+- **Vendor tree** (modules, defconfig, device trees) — Xiaomi MiCode
+  `air-t-oss`, version **5.15.94**. Public.
+
+The two carry different version numbers by design; the vendor tree stays
+KMI-compatible with the GKI core it ships against. Complete corresponding
+source = GKI core (Google) + vendor tree (OEM).
+
+## 3. Find the exact GKI core source
+
+![Kernel string to AOSP tag to Makefile](images/2_source_match.png)
+
+The `g…` field in the kernel string is a git commit, and it maps straight to a
+public Google tag:
+
+- Device commit: `f4321180a397`
+- AOSP tag: **`android13-5.15-2025-12_r9`** → commit `f4321180a3973d19…`, whose
+  `Makefile` reads `VERSION = 5`, `PATCHLEVEL = 15`, `SUBLEVEL = 194` =
+  **Linux 5.15.194**.
+
+Source: `android.googlesource.com/kernel/common` (tag `android13-5.15-2025-12_r9`).
+Verify: `/+/refs/tags/android13-5.15-2025-12_r9/Makefile`.
+
+So the shipped GKI core's source is public, and the device points to the exact
+commit.
+
+## 4. The vendor tree
+
+- Repo: `github.com/MiCode/Xiaomi_Kernel_OpenSource`, branch `air-t-oss`
+  (commit `13290e766`), `Makefile` → 5.15.94.
+- MTK GPL modules: `github.com/MiCode/MTK_kernel_modules`, branch `air-t-oss`.
+- Build/install scripts present: `build.config.mtk.aarch64`, Kbuild/Kconfig,
+  GKI defconfigs (GPLv2 §3).
+
+## Build verification
+
+The published `air-t-oss` vendor source **compiles into a bootable ARM64
+`Image`** (built with LTO/BTF off and the generic `gki_defconfig` to fit the
+build host, so not byte-identical to the shipped kernel). This confirms the
+published vendor source is genuine, complete, and buildable. Details in
+[`audit/`](audit/) → *Build Verification*.
+
+## License / obligation audit
+
+See [`audit/`](audit/): 63 copyleft components mapped; AGPL and `lzma`
+classifier flags resolved as false positives; attribution notes included.
+Upstream copyright headers + SPDX tags are preserved in the kernel source
+(GPLv2 §1).
+
+## Conclusion
+
+The complete corresponding source for this device is obtainable from public
+trees:
+
+- **GKI core 5.15.194** → Google ACK tag `android13-5.15-2025-12_r9` (public,
+  exact commit named by the device).
+- **Vendor tree** → MiCode `air-t-oss` + MTK modules (public).
+
+The `5.15.194` vs `5.15.94` difference reflects the **GKI core / vendor split**,
+not a missing-source gap.
+
+## Reproduce this yourself
+
+1. `adb shell uname -r` — read the kernel string.
+2. Take the `g<hash>` field and find the matching commit in Google's ACK:
+   `git ls-remote https://android.googlesource.com/kernel/common | grep <hash>`
+   (or scan the `android13-5.15-*` tags).
+3. Read that tag's `Makefile` to confirm the version.
+4. For the vendor tree, find the OEM's kernel repo (here, MiCode `air-t-oss`)
+   for modules, defconfig and device trees.
 
 ## Evidence
 
-See [`evidence/`](evidence/) — screenshots in clean and yellow-marked pairs:
-
-1. Device **About phone** → kernel **5.15.194**
-2. MiCode `air-t-oss` **Makefile** → kernel **5.15.94**
-3. Device **Open source licenses** page → license texts only
-
-## Status
-
-- Request sent: _2026-11_ (awaiting response).
-- Follow-up plan: nudge at ~3 weeks, again at ~5 weeks; escalate to the
-  [Software Freedom Conservancy](https://sfconservancy.org/copyleft-compliance/)
-  (`compliance@sfconservancy.org`) only if unanswered after ~6–8 weeks.
+See [`evidence/`](evidence/) — the on-device kernel string, the MiCode vendor
+`Makefile`, and the on-device open-source page, in clean and marked pairs.
 
 ## Note
 
-This is a good-faith compliance exercise, **not legal advice**. Under the GPL,
-the duty to provide Corresponding Source runs from the distributor (Xiaomi) to
-recipients of the binary.
+A good-faith, educational exercise — **not legal advice**. On GPL/GKI devices,
+corresponding source spans the Google-published core and the OEM-published
+vendor tree.
